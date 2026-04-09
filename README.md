@@ -71,6 +71,6 @@ pip install -r requirements.txt
 ## Colaboradores
 
 * Fernández Córdova Jonathan
-* Ximena Zaleta Hernández
+* Zaleta Hernández Ximena
 * Martínez Domínguez Diego 
 * Chama Aguilar Jessica Pola
