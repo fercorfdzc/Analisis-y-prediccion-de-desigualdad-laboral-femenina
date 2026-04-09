@@ -67,3 +67,10 @@ pip install -r requirements.txt
 * **Explicabilidad (XAI):** `shap`
 * **Manejo de Desbalanceo de Datos:** `imbalanced-learn`
 * **Serialización de Modelos:** `joblib`
+
+## Colaboradores
+
+* Fernández Córdova Jonathan
+* Ximena Zaleta Hernández
+* Martínez Domínguez Diego 
+* Chama Aguilar Jessica Pola
