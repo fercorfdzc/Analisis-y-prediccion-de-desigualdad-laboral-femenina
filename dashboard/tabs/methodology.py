@@ -1,9 +1,9 @@
 import streamlit as st
 
 def render_methodology():
-    st.title("Guia Metodologica y Glosario")
+    st.title("Guía Metodológica y Glosario")
     st.markdown("""
-    Este dashboard no solo muestra cifras, sino que busca explicar **el porqué** de la desigualdad de genero en Mexico. 
+    Este dashboard no solo muestra cifras, sino que busca explicar **el porqué** de la desigualdad de género en México. 
     A continuación, detallamos la metodología técnica para que puedas interpretar los resultados con total claridad.
     """)
 
@@ -23,7 +23,7 @@ def render_methodology():
         2. **ENIGH (Encuesta Nacional de Ingresos y Gastos de los Hogares)**: Fuente para entender la dinámica económica familiar y la carga de cuidados.
         """)
 
-    with st.expander("Metodologia de los Modelos (Machine Learning)"):
+    with st.expander("Metodología de los Modelos (Machine Learning)"):
         st.markdown("""
         Utilizamos algoritmos de **Inteligencia Artificial** (LightGBM, Ridge y XGBoost) para un análisis profundo:
         
