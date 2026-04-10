@@ -8,3 +8,6 @@ xgboost
 shap
 imbalanced-learn
 joblib
+streamlit
+plotly
+pyarrow

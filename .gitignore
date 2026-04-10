@@ -1,0 +1,21 @@
+# Datasets Masivos (Excluir para evitar error en GitHub)
+Dataset/*.csv
+
+# Datos Optimizados (Incluir para despliegue en la nube)
+!Dataset/enoe_lite.parquet
+!Dataset/enigh_lite.parquet
+
+# Modelos Entrenados (Necesarios para el dashboard)
+!dashboard/models/*.joblib
+
+# Python e IDEs
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+env/
+.env
+
+# Streamlit
+.streamlit/
+! .streamlit/config.toml
