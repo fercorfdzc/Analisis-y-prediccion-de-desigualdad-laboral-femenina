@@ -4,9 +4,9 @@ import pandas as pd
 from src.constants import COLOR_MUJER, COLOR_HOMBRE, COLOR_ACCENT, LABELS_MAPEADAS
 
 def render_household_economy(df):
-    st.title("Como se administra el dinero en los hogares?")
+    st.title("¿Cómo se administra el dinero en los hogares?")
     st.markdown("""
-    Analizamos si el genero de la persona que encabeza el hogar influye en los ingresos totales, 
+    Analizamos si el género de la persona que encabeza el hogar influye en los ingresos totales, 
     la capacidad de ahorro y la dependencia de apoyos externos.
     """)
     
@@ -17,7 +17,7 @@ def render_household_economy(df):
     with col1:
         st.markdown(f"""
         <div class="metric-card">
-            <h3 style='margin:0;'>Ingreso Mensual Tipico</h3>
+            <h3 style='margin:0;'>Ingreso Mensual Típico</h3>
             <h1 style='margin:0; color:white;'>${ing_media_m:,.0f}</h1>
             <p style='color:#94a3b8;'>Hogares con Jefa Mujer</p>
         </div>
@@ -36,11 +36,11 @@ def render_household_economy(df):
 
     st.divider()
     
-    st.info("Nota Metodologica: Los datos han sido convertidos de Ingreso Trimestral (estandar INEGI) a Ingreso Mensual y se analiza la Mediana, lo que representa de forma mas fiel la realidad del hogar tipico en Mexico.")
+    st.info("Nota Metodológica: Los datos han sido convertidos de Ingreso Trimestral (estandar INEGI) a Ingreso Mensual y se analiza la Mediana, lo que representa de forma mas fiel la realidad del hogar típico en México.")
 
     # --- Gráficos ---
     st.subheader("Fuentes de Ingreso y Gasto")
-    st.write("¿Como se distribuye el presupuesto mensual según quién encabeza el hogar?")
+    st.write("¿Cómo se distribuye el presupuesto mensual según quién encabeza el hogar?")
     
     df_gastos = df.groupby('es_jefa_mujer')[['ingtrab', 'transfer', 'gasto_mon']].median().reset_index()
     df_gastos['Género'] = df_gastos['es_jefa_mujer'].map({0: 'Hombre', 1: 'Mujer'})
