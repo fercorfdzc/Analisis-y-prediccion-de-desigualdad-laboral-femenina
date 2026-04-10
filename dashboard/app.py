@@ -13,7 +13,7 @@ from tabs.methodology import render_methodology
 
 # --- Configuración de Página ---
 st.set_page_config(
-    page_title="Desigualdad de Genero - Analisis de Datos",
+    page_title="Desigualdad de Género - Análisis de Datos",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded"
@@ -76,45 +76,45 @@ if not _modelos_validos():
 processor = DataProcessor(dataset_path='Dataset')
 
 # --- Barra Lateral (Navegación y Filtros) ---
-st.sidebar.title("Menu de Analisis")
+st.sidebar.title("Menú de Análisis")
 
 module = st.sidebar.radio(
-    "Selecciona un modulo:",
-    ["Inicio", "Mercado Laboral (ENOE)", "Economia del Hogar (ENIGH)", "Guia y Metodologia"]
+    "Selecciona un módulo:",
+    ["Inicio", "Mercado Laboral (ENOE)", "Economía del Hogar (ENIGH)", "Guía y Metodología"]
 )
 
 st.sidebar.divider()
-st.sidebar.info("Este dashboard analiza la brecha de genero y participacion laboral femenina en Mexico utilizando datos oficiales de INEGI.")
+st.sidebar.info("Este dashboard analiza la brecha de género y participación laboral femenina en Mexico utilizando datos oficiales de INEGI.")
 
 # --- Lógica de Módulos ---
 if module == "Inicio":
-    st.title("Impacto de la Desigualdad de Genero en Mexico")
-    st.subheader("Analisis de Brechas Laborales y Economicas en Hogares")
+    st.title("Impacto de la Desigualdad de Género en México")
+    st.subheader("Análisis de Brechas Laborales y Económicas en Hogares")
     
     st.markdown("""
-    Este dashboard interactivo ofrece una vision profunda sobre los desafios que enfrentan las mujeres 
-    en el mercado laboral y la administracion del hogar, basado en datos oficiales de **INEGI (ENOE y ENIGH)**.
+    Este dashboard interactivo ofrece una visión profunda sobre los desafíos que enfrentan las mujeres 
+    en el mercado laboral y la administración del hogar, basado en datos oficiales de **INEGI (ENOE y ENIGH)**.
     """)
     
     # Hero Section - Hallazgos más impactantes
-    st.info("Hallazgos Clave de este Analisis:")
+    st.info("Hallazgos Clave de este Análisis:")
     h_col1, h_col2, h_col3 = st.columns(3)
     with h_col1:
-        st.error("Menor Participacion")
-        st.write("La participacion femenina sigue siendo ~25% menor a la de los hombres.")
+        st.error("Menor Participación")
+        st.write("La participación femenina sigue siendo ~25% menor a la de los hombres.")
     with h_col2:
         st.warning("Brecha Salarial")
         st.write("Las mujeres perciben, en mediana, un **20.8% menos** por hora trabajada (dato ENOE 2025).")
     with h_col3:
-        st.success("Sosten del Hogar")
-        st.write("Las jefas de hogar destinan proporcionalmente mas ingreso a transferencias y becas.")
+        st.success("Sostén del Hogar")
+        st.write("Las jefas de hogar destinan proporcionalmente más ingreso a transferencias y becas.")
 
     st.divider()
     
     st.markdown("""
-    ### Modulos Disponibles:
-    - **Mercado Laboral (ENOE)**: Explora quien trabaja, por que y utiliza el simulador predictivo para ver el impacto de variables como la educacion y la zona geografica.
-    - **Economia del Hogar (ENIGH)**: Compara los ingresos y gastos de los hogares liderados por mujeres vs hombres.
+    ### Módulos Disponibles:
+    - **Mercado Laboral (ENOE)**: Explora quien trabaja, por que y utiliza el simulador predictivo para ver el impacto de variables como la educación y la zona geográfica.
+    - **Economía del Hogar (ENIGH)**: Compara los ingresos y gastos de los hogares liderados por mujeres vs hombres.
     
     ### Objetivo del Proyecto:
     Analizar, mediante evidencia de datos, las barreras y desafíos que enfrentan las mujeres al ejercer sus derechos en el trabajo remunerado. Este análisis permite comprender los matices de la desigualdad de género y sirve como punto de partida para motivar la creación de soluciones innovadoras orientadas a cerrar estas brechas en el marco del Datatón.
@@ -135,7 +135,7 @@ elif module == "Mercado Laboral (ENOE)":
         else:
             render_labor_market(df_enoe)
 
-elif module == "Economia del Hogar (ENIGH)":
+elif module == "Economía del Hogar (ENIGH)":
     @st.cache_data(ttl=3600)
     def get_enigh_data():
         df, error = processor.load_enigh_data()
@@ -150,7 +150,7 @@ elif module == "Economia del Hogar (ENIGH)":
         else:
             render_household_economy(df_enigh)
 
-elif module == "Guia y Metodologia":
+elif module == "Guía y Metodología":
     render_methodology()
 
 # --- Pie de Página ---
@@ -159,7 +159,7 @@ st.sidebar.caption("DAT4CCIÓN: Datatón regional para la igualdad 2026")
 st.sidebar.markdown("""
 **Colaboradores:**
 - Fernández Córdova Jonathan
-- Ximena Zaleta Hernández
+- Zaleta Hernández Ximena
 - Martínez Domínguez Diego 
 - Chama Aguilar Jessica Pola
 """)
