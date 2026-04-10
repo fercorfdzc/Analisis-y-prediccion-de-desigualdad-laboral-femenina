@@ -124,3 +124,4 @@ def render_labor_market(df):
 
             except Exception as e:
                 st.error("Error en el simulador. Verifica si los modelos estan instalados.")
+
