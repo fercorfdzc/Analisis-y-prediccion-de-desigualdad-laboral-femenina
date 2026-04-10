@@ -7,9 +7,9 @@ import os
 from src.constants import ESTADOS, NIVELES_EDUCATIVOS, ESTADOS_CIVILES, COLOR_MUJER, COLOR_HOMBRE, LABELS_MAPEADAS
 
 def render_labor_market(df):
-    st.title("Como es el panorama laboral en Mexico?")
+    st.title("¿Cómo es el panorama laboral en Mexico?")
     st.markdown("""
-    Aqui analizamos quienes participan en la economia y que obstaculos enfrentan. 
+    Aquí analizamos quienes participan en la economía y que obstáculos enfrentan. 
     Los datos reflejan brechas que no siempre son visibles a simple vista.
     """)
     
@@ -19,16 +19,16 @@ def render_labor_market(df):
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Tasa de Participacion Femenina", f"{m_part:.1f}%", 
+        st.metric("Tasa de Participación Femenina", f"{m_part:.1f}%", 
                   delta=f"{m_part - h_part:.1f}% vs Hombres",
-                  help="Porcentaje de mujeres economicamente activas sobre el total.")
+                  help="Porcentaje de mujeres económicamente activas sobre el total.")
     with col2:
         ing_m = df[(df['es_mujer'] == 1) & (df['ing_ocup'] > 0)]['ing_ocup'].median() if 'ing_ocup' in df.columns else df[(df['es_mujer'] == 1) & (df['ingocup'] > 0)]['ingocup'].median()
         ing_h = df[(df['es_mujer'] == 0) & (df['ing_ocup'] > 0)]['ing_ocup'].median() if 'ing_ocup' in df.columns else df[(df['es_mujer'] == 0) & (df['ingocup'] > 0)]['ingocup'].median()
         brecha = (1 - (ing_m / ing_h)) * 100
-        st.metric("Brecha Salarial de Genero", f"{brecha:.1f}%", 
+        st.metric("Brecha Salarial de Género", f"{brecha:.1f}%", 
                   delta="Menos que los hombres", delta_color="inverse",
-                  help="Diferencia de ingresos MEDIANA entre generos (ajustada por robustez estadistica).")
+                  help="Diferencia de ingresos MEDIANA entre géneros (ajustada por robustez estadística).")
     with col3:
         inf_m = (1 - df[(df['es_mujer'] == 1) & (df['es_ocupado'] == 1)]['es_formal'].mean()) * 100
         st.metric("Informalidad Femenina", f"{inf_m:.1f}%",
@@ -37,10 +37,10 @@ def render_labor_market(df):
     st.divider()
 
     # --- Visualizaciones ---
-    tab_eda, tab_pred, tab_geo = st.tabs(["Analisis de Datos", "Determinantes (IA)", "Geografia de la Inclusion"])
+    tab_eda, tab_pred, tab_geo = st.tabs(["Análisis de Datos", "Determinantes (IA)", "Geografía de la Inclusión"])
     
     with tab_eda:
-        st.subheader("Como influye la educacion en la vida laboral?")
+        st.subheader("¿Cómo influye la educación en la vida laboral?")
         
         df_esc = df.groupby(['anios_esc', 'es_mujer'])['participa_laboral'].mean().reset_index()
         df_esc['Género'] = df_esc['es_mujer'].map({0: 'Hombre', 1: 'Mujer'})
