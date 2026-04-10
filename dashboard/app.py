@@ -1,6 +1,12 @@
 import streamlit as st
 import os
+import sys
+
+# Asegurar que los módulos de dashboard sean importables
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from src.data_processor import DataProcessor
+from src.model_trainer import ModelTrainer
 from tabs.labor_market import render_labor_market
 from tabs.household_economy import render_household_economy
 from tabs.methodology import render_methodology
@@ -18,8 +24,53 @@ def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-if os.path.exists("dashboard/assets/style.css"):
-    local_css("dashboard/assets/style.css")
+css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
+if os.path.exists(css_path):
+    local_css(css_path)
+
+# --- Auto-reentrenamiento si los modelos son incompatibles ---
+def _modelos_validos():
+    """Verifica que los modelos se pueden cargar con la versión actual de sklearn."""
+    import joblib
+    model_path = os.path.join(os.path.dirname(__file__), "models", "modelo1_participacion.joblib")
+    if not os.path.exists(model_path):
+        return False
+    try:
+        joblib.load(model_path)
+        return True
+    except Exception:
+        return False
+
+def _reentrenar():
+    """Reentrenamiento completo usando los parquet del repositorio."""
+    import sys
+    # Añadir carpeta raíz al path para importar setup_dashboard
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    
+    processor = DataProcessor(dataset_path=os.path.join(root, 'Dataset'))
+    trainer = ModelTrainer(output_dir=os.path.join(os.path.dirname(__file__), 'models'))
+    
+    df_enoe, err = processor.load_enoe_data()
+    if not err:
+        df_clean = processor.clean_enoe_data(df_enoe)
+        trainer.train_enoe_models(df_clean)
+    
+    df_enigh, err_enigh = processor.load_enigh_data()
+    if not err_enigh:
+        df_enigh_clean = processor.clean_enigh_data(df_enigh)
+        trainer.train_enigh_model(df_enigh_clean)
+
+if not _modelos_validos():
+    with st.spinner("Preparando modelos de IA para este entorno... (solo ocurre la primera vez)"):
+        try:
+            _reentrenar()
+            st.success("Modelos listos. Recargando...")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error al preparar modelos: {e}")
+            st.stop()
 
 # --- Iniciar Procesador ---
 processor = DataProcessor(dataset_path='Dataset')
