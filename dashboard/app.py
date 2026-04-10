@@ -53,7 +53,7 @@ if module == "Inicio":
         st.write("La participacion femenina sigue siendo ~25% menor a la de los hombres.")
     with h_col2:
         st.warning("Brecha Salarial")
-        st.write("Las mujeres perciben, en mediana, un 15-30% menos por hora trabajada.")
+        st.write("Las mujeres perciben, en mediana, un **20.8% menos** por hora trabajada (dato ENOE 2025).")
     with h_col3:
         st.success("Sosten del Hogar")
         st.write("Las jefas de hogar destinan proporcionalmente mas ingreso a transferencias y becas.")

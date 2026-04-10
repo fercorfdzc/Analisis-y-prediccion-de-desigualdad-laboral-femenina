@@ -37,7 +37,7 @@ def render_labor_market(df):
     st.divider()
 
     # --- Visualizaciones ---
-    tab_eda, tab_sim = st.tabs(["Analisis Visual", "Simulador de Impacto"])
+    tab_eda, tab_pred, tab_geo = st.tabs(["Analisis de Datos", "Determinantes (IA)", "Geografia de la Inclusion"])
     
     with tab_eda:
         st.subheader("Como influye la educacion en la vida laboral?")
@@ -50,78 +50,123 @@ def render_labor_market(df):
                           template="plotly_dark", color_discrete_map={'Hombre': COLOR_HOMBRE, 'Mujer': COLOR_MUJER})
         st.plotly_chart(fig_esc, use_container_width=True)
 
-    with tab_sim:
-        st.subheader("Simulador de Equidad e Inclusion")
+    with tab_pred:
+        st.subheader("¿Qué factores definen que una mujer trabaje?")
+        st.markdown("""
+        Los modelos de Inteligencia Artificial analizan patrones en miles de respuestas para determinar 
+        qué variables tienen más peso en la participación laboral.
+        """)
         
-        col_s1, col_s2, col_s3 = st.columns([1,1,1])
-        with col_s1:
-            age = st.slider("Edad", 15, 80, 25)
-            schooling = st.slider("Años de estudio", 0, 24, 12)
-        with col_s2:
-            entidad_name = st.selectbox("Estado", options=list(ESTADOS.values()))
-            entidad = [k for k, v in ESTADOS.items() if v == entidad_name][0]
-            marital_name = st.selectbox("Estado Civil", options=list(ESTADOS_CIVILES.values()))
-            marital = [k for k, v in ESTADOS_CIVILES.items() if v == marital_name][0]
-        with col_s3:
-            genero_sel = st.selectbox("Genero a simular", ["Mujer", "Hombre"])
-            es_mujer_sel = 1 if genero_sel == "Mujer" else 0
-            urban = st.radio("Zona", [1, 0], format_func=lambda x: "Urbana" if x==1 else "Rural")
+        try:
+            model_path = 'dashboard/models/modelo1_participacion.joblib'
+            if os.path.exists(model_path):
+                pipe = joblib.load(model_path)
+                
+                # Extraer importancia
+                clf = pipe.named_steps['clf']
+                pre = pipe.named_steps['pre']
+                feat_names = pre.get_feature_names_out()
+                importances = clf.feature_importances_
+                
+                df_imp = pd.DataFrame({'Variable': feat_names, 'Importancia': importances})
+                df_imp['Variable'] = df_imp['Variable'].apply(lambda x: x.split('__')[-1])
+                df_imp['Variable'] = df_imp['Variable'].map(LABELS_MAPEADAS).fillna(df_imp['Variable'])
+                
+                df_imp = df_imp.sort_values('Importancia', ascending=True).tail(10)
+                
+                fig_imp = px.bar(df_imp, x='Importancia', y='Variable', orientation='h',
+                                 title="Top 10 Determinantes de Inclusión",
+                                 template="plotly_dark", color_discrete_sequence=[COLOR_MUJER])
+                fig_imp.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_imp, use_container_width=True)
+                
+                st.info("**Interpretación:** Un valor alto indica que el modelo depende significativamente de esa variable para proyectar la inclusión.")
+        except Exception as e:
+            st.warning("El análisis de importancia estará disponible una vez que los modelos estén completamente entrenados.")
 
-        if st.button("Calcular Analisis"):
-            try:
-                pipe_m1 = joblib.load('dashboard/models/modelo1_participacion.joblib')
-                
-                input_data = pd.DataFrame([[age, schooling, 1, 1, marital, entidad, es_mujer_sel, urban]], 
-                                          columns=['eda', 'anios_esc', 'niv_ins', 't_loc_tri', 'e_con', 'cve_ent', 'es_mujer', 'ur'])
-                prob_sel = pipe_m1.predict_proba(input_data)[0][1]
-                
-                st.markdown(f"### Probabilidad de Inclusion para {genero_sel}: **{prob_sel*100:.1f}%**")
-                
-                fig_gauge = go.Figure(go.Indicator(
-                    mode = "gauge+number+delta",
-                    value = prob_sel * 100,
-                    number = {'suffix': "%", 'font': {'size': 70, 'color': 'white', 'weight': 'bold'}},
-                    title = {'text': "Probabilidad de Exito", 'font': {'size': 20, 'color': 'rgba(255,255,255,0.7)'}},
-                    gauge = {
-                        'axis': {'range': [None, 100], 'visible': False},
-                        'bar': {'color': "white", 'thickness': 0.05},
-                        'bgcolor': "rgba(255,255,255,0.05)",
-                        'borderwidth': 0,
-                        'steps': [
-                            {'range': [0, 100], 'color': "rgba(255,255,255,0.05)"},
-                            {'range': [0, prob_sel * 100], 'color': COLOR_MUJER if es_mujer_sel == 1 else COLOR_HOMBRE}
-                        ],
-                        'threshold': {
-                            'line': {'color': "white", 'width': 4},
-                            'thickness': 0.75,
-                            'value': prob_sel * 100
-                        }
-                    }))
-                
-                fig_gauge.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=40, r=40, t=80, b=40),
-                    height=300,
-                    font={'family': "Outfit, sans-serif"}
-                )
-                
-                fig_gauge.add_annotation(
-                    x=0.5, y=0.1,
-                    text="PUNTAJE DE INCLUSION",
-                    showarrow=False,
-                    font=dict(size=14, color="rgba(255,255,255,0.5)", family="Outfit")
-                )
-                
-                st.plotly_chart(fig_gauge, use_container_width=True)
+    with tab_geo:
+        st.subheader("Geografía de la Inclusión Femenina")
+        st.write("Análisis predictivo de la probabilidad de inclusión por Entidad Federativa para un perfil estándar.")
+        
+        col_g1, col_g2 = st.columns([1, 2])
+        
+        with col_g1:
+            st.markdown("""
+            **Perfil de Referencia:**
+            - Edad: 30 años
+            - Educación: Preparatoria / Licenciatura
+            - Estado Civil: Soltera
+            - Zona: Urbana
+            """)
+            st.info("Este mapa muestra dónde es más probable que una mujer con este perfil se integre al mercado laboral según los datos históricos del INEGI.")
 
-                if prob_sel < 0.4:
-                    st.warning("Barreras de Inclusion: El perfil indica retos importantes para la participacion laboral plena. Se sugiere fortalecer los programas de capacitacion y vinculacion.")
-                elif prob_sel < 0.7:
-                    st.info("Integracion Moderada: Existen condiciones favorables pero persisten areas de oportunidad para mejorar la estabilidad laboral.")
-                else:
-                    st.success("Inclusion Probable: El perfil cuenta con una solida probabilidad de participacion en el mercado laboral formal.")
+        try:
+            model_path = 'dashboard/models/modelo1_participacion.joblib'
+            if os.path.exists(model_path):
+                pipe = joblib.load(model_path)
+                
+                geo_data = []
+                for cod, nombre in ESTADOS.items():
+                    # Perfil: 30 años, 16 escolaridad, niv_ins=4 (Prep/Lic, código válido), Urbano(1), e_con=5 (Soltera), Estado X, Mujer(1), ur=1
+                    row = [30, 16, 4, 1, 5, cod, 1, 1]
+                    geo_data.append(row)
+                
+                df_geo_pred = pd.DataFrame(geo_data, columns=['eda', 'anios_esc', 'niv_ins', 't_loc_tri', 'e_con', 'cve_ent', 'es_mujer', 'ur'])
+                probs = pipe.predict_proba(df_geo_pred)[:, 1]
+                
+                df_map = pd.DataFrame({
+                    'Estado': [ESTADOS[c] for c in df_geo_pred['cve_ent']],
+                    'Inclusion': probs * 100
+                })
+                
+                df_map = df_map.sort_values('Inclusion', ascending=True)
+                
+                fig_map = px.bar(df_map, x='Inclusion', y='Estado', orientation='h',
+                                 color='Inclusion', color_continuous_scale='Purples',
+                                 title="Ranking de Probabilidad de Inclusión por Estado",
+                                 labels={'Inclusion': 'Probabilidad (%)'},
+                                 template="plotly_dark", height=700)
+                
+                fig_map.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_map, use_container_width=True)
+                
+        except Exception as e:
+            st.error(f"Error al generar análisis geográfico: {e}")
+            
+    # --- Nueva Sección: Diagnóstico por Historias ---
+    st.divider()
+    st.subheader("Diagnóstico: ¿Cómo cambia la oportunidad?")
+    st.write("Compara automáticamente el impacto del contexto en el acceso al trabajo.")
+    
+    col_h1, col_h2 = st.columns(2)
+    
+    with col_h1:
+        st.markdown("**Persona A: Perfil con Barreras**")
+        st.caption("35 años, Primaria, Zona Rural, Unión Libre.")
+        # Simular para Persona A
+        # t_loc_tri=4 (rural pequeño), e_con=1 (unión libre), ur=2 (rural)
+        input_a = pd.DataFrame([[35, 6, 2, 4, 1, 9, 1, 2]], columns=['eda', 'anios_esc', 'niv_ins', 't_loc_tri', 'e_con', 'cve_ent', 'es_mujer', 'ur'])
+        input_ah = input_a.copy(); input_ah['es_mujer'] = 0
+        
+        try:
+            pipe = joblib.load('dashboard/models/modelo1_participacion.joblib')
+            p_a_m = pipe.predict_proba(input_a)[0][1] * 100
+            p_a_h = pipe.predict_proba(input_ah)[0][1] * 100
+            
+            st.metric("Inclusión Mujer", f"{p_a_m:.1f}%", delta=f"{p_a_m - p_a_h:.1f}% vs Hombre")
+        except: st.error("Modelos no cargados")
 
-            except Exception as e:
-                st.error("Error en el simulador. Verifica si los modelos estan instalados.")
+    with col_h2:
+        st.markdown("**Persona B: Perfil Académico**")
+        st.caption("24 años, Maestría, Zona Urbana, Soltera.")
+        # Simular para Persona B
+        input_b = pd.DataFrame([[24, 19, 4, 1, 5, 9, 1, 1]], columns=['eda', 'anios_esc', 'niv_ins', 't_loc_tri', 'e_con', 'cve_ent', 'es_mujer', 'ur'])
+        input_bh = input_b.copy(); input_bh['es_mujer'] = 0
+        
+        try:
+            p_b_m = pipe.predict_proba(input_b)[0][1] * 100
+            p_b_h = pipe.predict_proba(input_bh)[0][1] * 100
+            
+            st.metric("Inclusión Mujer", f"{p_b_m:.1f}%", delta=f"{p_b_m - p_b_h:.1f}% vs Hombre")
+        except: st.error("Modelos no cargados")
 

@@ -16,16 +16,15 @@ NIVELES_EDUCATIVOS = {
     1: "Sin instrucción / Preescolar",
     2: "Primaria",
     3: "Secundaria",
-    4: "Preparatoria / Bachillerato",
-    5: "Licenciatura o superior"
+    4: "Preparatoria / Licenciatura o superior"
 }
 
 ESTADOS_CIVILES = {
-    1: "Soltero(a)",
-    2: "Casado(a)",
-    3: "Unión Libre",
-    4: "Divorciado(a) / Separado(a)",
-    5: "Viudo(a)"
+    1: "Unión Libre",
+    2: "Separado(a)",
+    3: "Divorciado(a)",
+    4: "Viudo(a)",
+    5: "Soltero(a)"
 }
 
 # Paleta de colores para el dashboard

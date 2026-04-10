@@ -65,15 +65,7 @@ Para garantizar la viabilidad técnica y rapidez del dashboard en la nube, imple
 ---
 
 ## Colaboradores
-<<<<<<< HEAD
 - Fernández Córdova Jonathan
 - Ximena Zaleta Hernández
 - Martínez Domínguez Diego 
 - Chama Aguilar Jessica Pola
-=======
-
-* Fernández Córdova Jonathan
-* Zaleta Hernández Ximena
-* Martínez Domínguez Diego 
-* Chama Aguilar Jessica Pola
->>>>>>> 773ee0d9ea975ab7b3566f6215ec83094ab66991
