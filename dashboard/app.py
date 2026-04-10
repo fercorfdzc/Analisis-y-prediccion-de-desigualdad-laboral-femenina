@@ -1,9 +1,15 @@
-import streamlit as st
-import os
-import sys
+from pathlib import Path
+
+# --- Rutas Robustas ---
+DASHBOARD_DIR = Path(__file__).parent
+ROOT_DIR = DASHBOARD_DIR.parent
+MODELS_DIR = DASHBOARD_DIR / "models"
+ASSETS_DIR = DASHBOARD_DIR / "assets"
+DATASET_DIR = ROOT_DIR / "Dataset"
 
 # Asegurar que los módulos de dashboard sean importables
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if str(DASHBOARD_DIR) not in sys.path:
+    sys.path.insert(0, str(DASHBOARD_DIR))
 
 from src.data_processor import DataProcessor
 from src.model_trainer import ModelTrainer
@@ -21,19 +27,21 @@ st.set_page_config(
 
 # --- Carga de Estilos ---
 def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    try:
+        with open(file_name) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        pass
 
-css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
-if os.path.exists(css_path):
-    local_css(css_path)
+css_path = ASSETS_DIR / "style.css"
+local_css(css_path)
 
 # --- Auto-reentrenamiento si los modelos son incompatibles ---
 def _modelos_validos():
     """Verifica que los modelos se pueden cargar con la versión actual de sklearn."""
     import joblib
-    model_path = os.path.join(os.path.dirname(__file__), "models", "modelo1_participacion.joblib")
-    if not os.path.exists(model_path):
+    model_path = MODELS_DIR / "modelo1_participacion.joblib"
+    if not model_path.exists():
         return False
     try:
         joblib.load(model_path)
@@ -42,16 +50,14 @@ def _modelos_validos():
         return False
 
 def _reentrenar():
-    """Reentrenamiento completo usando los parquet del repositorio."""
-    import sys
-    # Añadir carpeta raíz al path para importar setup_dashboard
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if root not in sys.path:
-        sys.path.insert(0, root)
+    """
+    Reentrenamiento automático optimizado. 
+    Nota: En Cloud (1GB RAM) esto puede fallar si se usan CSVs.
+    """
+    processor = DataProcessor(dataset_path=str(DATASET_DIR))
+    trainer = ModelTrainer(output_dir=str(MODELS_DIR))
     
-    processor = DataProcessor(dataset_path=os.path.join(root, 'Dataset'))
-    trainer = ModelTrainer(output_dir=os.path.join(os.path.dirname(__file__), 'models'))
-    
+    # Prioridad absoluta a Parquet para no agotar RAM
     df_enoe, err = processor.load_enoe_data()
     if not err:
         df_clean = processor.clean_enoe_data(df_enoe)
@@ -73,7 +79,7 @@ if not _modelos_validos():
             st.stop()
 
 # --- Iniciar Procesador ---
-processor = DataProcessor(dataset_path='Dataset')
+processor = DataProcessor(dataset_path=str(DATASET_DIR))
 
 # --- Barra Lateral (Navegación y Filtros) ---
 st.sidebar.title("Menu de Analisis")
