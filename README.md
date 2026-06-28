@@ -14,7 +14,7 @@ Este dashboard utiliza **Ciencia de Datos** y **Machine Learning** para cuantifi
 
 ---
 
-## Metodologia Tecnica (Sin Suposiciones)
+## Metodologia Tecnica
 
 ### 1. Fuentes de Datos
 Utilizamos dos de las encuestas más robustas de México:
