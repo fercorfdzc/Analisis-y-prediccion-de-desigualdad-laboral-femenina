@@ -11,8 +11,13 @@ def render_household_economy(df):
     """)
     
     col1, col2 = st.columns(2)
-    ing_media_m = df[df['es_jefa_mujer'] == 1]['ing_cor'].median()
-    ing_media_h = df[df['es_jefa_mujer'] == 0]['ing_cor'].median()
+    
+    # Filtro de outliers: Excluir el 5% más rico (percentil 95) para usar el promedio
+    q95_ingreso = df['ing_cor'].quantile(0.95)
+    df_sin_outliers = df[df['ing_cor'] <= q95_ingreso]
+    
+    ing_media_m = df_sin_outliers[df_sin_outliers['es_jefa_mujer'] == 1]['ing_cor'].mean()
+    ing_media_h = df_sin_outliers[df_sin_outliers['es_jefa_mujer'] == 0]['ing_cor'].mean()
     
     with col1:
         st.markdown(f"""
@@ -30,19 +35,19 @@ def render_household_economy(df):
         <div class="metric-card">
             <h3 style='margin:0;'>Brecha vs Jefe Hombre</h3>
             <h1 style='margin:0; color:{color};'>{diff:+.1f}%</h1>
-            <p style='color:#94a3b8;'>Diferencia en el ingreso mediano</p>
+            <p style='color:#94a3b8;'>Diferencia en el ingreso promedio (sin outliers)</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.divider()
     
-    st.info("Nota Metodológica: Los datos han sido convertidos de Ingreso Trimestral (estandar INEGI) a Ingreso Mensual y se analiza la Mediana, lo que representa de forma mas fiel la realidad del hogar típico en México.")
+    st.info("Nota Metodológica: Los datos han sido convertidos a Ingreso Mensual. Se excluyó al 5% de los hogares con ingresos más altos (outliers) para calcular el promedio de la mayoría de la población.")
 
     # --- Gráficos ---
     st.subheader("Fuentes de Ingreso y Gasto")
     st.write("¿Cómo se distribuye el presupuesto mensual según quién encabeza el hogar?")
     
-    df_gastos = df.groupby('es_jefa_mujer')[['ingtrab', 'transfer', 'gasto_mon']].median().reset_index()
+    df_gastos = df_sin_outliers.groupby('es_jefa_mujer')[['ingtrab', 'transfer', 'gasto_mon']].mean().reset_index()
     df_gastos['Género'] = df_gastos['es_jefa_mujer'].map({0: 'Hombre', 1: 'Mujer'})
     
     fig_bar = px.bar(df_gastos, x='Género', y=['ingtrab', 'transfer', 'gasto_mon'], 
@@ -54,9 +59,9 @@ def render_household_economy(df):
     st.plotly_chart(fig_bar, use_container_width=True)
     
     with st.expander("Ver Detalle de Apoyos y Tabla de Datos"):
-        st.markdown("### Resumen Mensual (Medianas)")
+        st.markdown("### Resumen Mensual (Promedios sin outliers)")
         
-        resumen_hogar = df.groupby('es_jefa_mujer')[['ing_cor', 'transfer']].median().reset_index()
+        resumen_hogar = df_sin_outliers.groupby('es_jefa_mujer')[['ing_cor', 'transfer']].mean().reset_index()
         resumen_hogar['Género'] = resumen_hogar['es_jefa_mujer'].map({0: 'Hogar Jefe Hombre', 1: 'Hogar Jefa Mujer'})
         
         resumen_hogar = resumen_hogar.rename(columns={
