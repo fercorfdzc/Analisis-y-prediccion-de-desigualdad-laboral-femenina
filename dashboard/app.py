@@ -15,9 +15,7 @@ if str(DASHBOARD_DIR) not in sys.path:
 
 from src.data_processor import DataProcessor
 from src.model_trainer import ModelTrainer
-from tabs.labor_market import render_labor_market
-from tabs.household_economy import render_household_economy
-from tabs.methodology import render_methodology
+from tabs.decision_support import render_decision_support
 
 # --- Configuración de Página ---
 st.set_page_config(
@@ -83,83 +81,31 @@ if not _modelos_validos():
 # --- Iniciar Procesador ---
 processor = DataProcessor(dataset_path=str(DATASET_DIR))
 
-# --- Barra Lateral (Navegación y Filtros) ---
-st.sidebar.title("Menú de Análisis")
+# --- Lógica Principal (Pantalla Única) ---
+st.title("Impacto de la Desigualdad de Género en México")
+st.subheader("Análisis de Brechas Laborales y Económicas en Hogares")
 
-module = st.sidebar.radio(
-    "Selecciona un módulo:",
-    ["Inicio", "Mercado Laboral (ENOE)", "Economía del Hogar (ENIGH)", "Guía y Metodología"]
-)
+st.markdown("""
+Este dashboard interactivo ofrece una visión profunda sobre los desafíos que enfrentan las mujeres 
+en el mercado laboral y la administración del hogar, basado en datos oficiales de **INEGI (ENOE y ENIGH)**.
+""")
 
-st.sidebar.divider()
-st.sidebar.info("Este dashboard analiza la brecha de género y participación laboral femenina en Mexico utilizando datos oficiales de INEGI.")
+# Hero Section - Hallazgos más impactantes
+st.info("Hallazgos Clave de este Análisis:")
+h_col1, h_col2, h_col3 = st.columns(3)
+with h_col1:
+    st.error("Menor Participación")
+    st.write("La participación femenina sigue siendo ~25% menor a la de los hombres.")
+with h_col2:
+    st.warning("Brecha Salarial")
+    st.write("Las mujeres perciben, en mediana, un **20.8% menos** por hora trabajada (dato ENOE 2025).")
+with h_col3:
+    st.success("Sostén del Hogar")
+    st.write("Las jefas de hogar destinan proporcionalmente más ingreso a transferencias y becas.")
 
-# --- Lógica de Módulos ---
-if module == "Inicio":
-    st.title("Impacto de la Desigualdad de Género en México")
-    st.subheader("Análisis de Brechas Laborales y Económicas en Hogares")
-    
-    st.markdown("""
-    Este dashboard interactivo ofrece una visión profunda sobre los desafíos que enfrentan las mujeres 
-    en el mercado laboral y la administración del hogar, basado en datos oficiales de **INEGI (ENOE y ENIGH)**.
-    """)
-    
-    # Hero Section - Hallazgos más impactantes
-    st.info("Hallazgos Clave de este Análisis:")
-    h_col1, h_col2, h_col3 = st.columns(3)
-    with h_col1:
-        st.error("Menor Participación")
-        st.write("La participación femenina sigue siendo ~25% menor a la de los hombres.")
-    with h_col2:
-        st.warning("Brecha Salarial")
-        st.write("Las mujeres perciben, en mediana, un **20.8% menos** por hora trabajada (dato ENOE 2025).")
-    with h_col3:
-        st.success("Sostén del Hogar")
-        st.write("Las jefas de hogar destinan proporcionalmente más ingreso a transferencias y becas.")
+st.divider()
 
-    st.divider()
-    
-    st.markdown("""
-    ### Módulos Disponibles:
-    - **Mercado Laboral (ENOE)**: Explora quien trabaja, por que y utiliza el simulador predictivo para ver el impacto de variables como la educación y la zona geográfica.
-    - **Economía del Hogar (ENIGH)**: Compara los ingresos y gastos de los hogares liderados por mujeres vs hombres.
-    
-    ### Objetivo del Proyecto:
-    Analizar, mediante evidencia de datos, las barreras y desafíos que enfrentan las mujeres al ejercer sus derechos en el trabajo remunerado. Este análisis permite comprender los matices de la desigualdad de género y sirve como punto de partida para motivar la creación de soluciones innovadoras orientadas a cerrar estas brechas en el marco del Datatón.
-    """)
-
-elif module == "Mercado Laboral (ENOE)":
-    @st.cache_data
-    def get_enoe_data():
-        df_merged, error = processor.load_enoe_data()
-        if error: return None, error
-        df_clean = processor.clean_enoe_data(df_merged)
-        return df_clean, None
-
-    with st.spinner("Cargando datos de ENOE..."):
-        df_enoe, err = get_enoe_data()
-        if err:
-            st.error(err)
-        else:
-            render_labor_market(df_enoe)
-
-elif module == "Economía del Hogar (ENIGH)":
-    @st.cache_data(ttl=3600)
-    def get_enigh_data():
-        df, error = processor.load_enigh_data()
-        if error: return None, error
-        df_clean = processor.clean_enigh_data(df)
-        return df_clean, None
-
-    with st.spinner("Cargando datos de ENIGH..."):
-        df_enigh, err = get_enigh_data()
-        if err:
-            st.error(err)
-        else:
-            render_household_economy(df_enigh)
-
-elif module == "Guía y Metodología":
-    render_methodology()
+render_decision_support()
 
 # --- Pie de Página ---
 st.sidebar.divider()

@@ -30,9 +30,12 @@ def setup():
     print("\n--- Cargando datos de ENIGH ---")
     df_enigh, error_enigh = processor.load_enigh_data()
     if not error_enigh:
-        print("--- Entrenando modelo de diagnostico ENIGH (M4) ---")
+        print("--- Realizando Fusion de Datos (Statistical Matching) ---")
         df_enigh_clean = processor.clean_enigh_data(df_enigh)
-        trainer.train_enigh_model(df_enigh_clean)
+        df_fused = processor.fuse_enoe_enigh(df_enigh_clean, df_clean)
+        
+        print("--- Entrenando modelo de diagnostico IVLE (M4) ---")
+        trainer.train_enigh_model(df_fused)
     else:
         print(f"Aviso: No se pudo cargar ENIGH para el diagnostico: {error_enigh}")
 

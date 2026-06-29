@@ -160,3 +160,33 @@ class DataProcessor:
         
         df_clean['es_jefa_mujer'] = (df_clean['sexo_jefe'] == 2).astype(int)
         return df_clean
+
+    def fuse_enoe_enigh(self, df_enigh_clean, df_enoe_clean):
+        """
+        Fusión de Datos a Nivel de Perfil (Statistical Matching).
+        Calcula probabilidades macroeconómicas del entorno laboral desde ENOE 
+        (ej. Riesgo de Informalidad Femenina) y las inyecta en ENIGH basándose 
+        en perfiles sociodemográficos exactos.
+        """
+        # Calcular probabilidad de informalidad por perfil (Género + Educación) en ENOE
+        # Primero aseguramos que existe es_formal (1 si es formal, 0 si es informal)
+        enoe_perfil = df_enoe_clean.dropna(subset=['es_formal', 'niv_ins']).copy()
+        
+        # Riesgo de informalidad = Proporción de informales (1 - es_formal)
+        enoe_perfil['es_informal'] = 1 - enoe_perfil['es_formal']
+        
+        riesgo_laboral = enoe_perfil.groupby(['es_mujer', 'niv_ins'])['es_informal'].mean().reset_index()
+        riesgo_laboral.rename(columns={
+            'es_mujer': 'es_jefa_mujer', 
+            'niv_ins': 'educa_jefe', 
+            'es_informal': 'riesgo_informalidad_entorno'
+        }, inplace=True)
+        
+        # Inyectar (merge) estas probabilidades en los microdatos de ENIGH
+        df_fused = df_enigh_clean.merge(riesgo_laboral, on=['es_jefa_mujer', 'educa_jefe'], how='left')
+        
+        # Llenar nulos (si un perfil raro no existiera en ENOE) con el promedio nacional
+        promedio_nacional = enoe_perfil['es_informal'].mean()
+        df_fused['riesgo_informalidad_entorno'] = df_fused['riesgo_informalidad_entorno'].fillna(promedio_nacional)
+        
+        return df_fused

@@ -9,6 +9,9 @@ from sklearn.preprocessing import StandardScaler, OrdinalEncoder, TargetEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
+from sklearn.decomposition import PCA
+from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import MinMaxScaler
 import lightgbm as lgb
 
 class ModelTrainer:
@@ -86,48 +89,95 @@ class ModelTrainer:
         joblib.dump(pipe_m3, os.path.join(self.output_dir, 'modelo3_informalidad.joblib'))
         print("M3 guardado.")
 
-    def train_enigh_model(self, df_enigh):
+    def train_enigh_model(self, df_fused):
         """
-        Entrena el Modelo de Diagnóstico ENIGH (M4):
-        Objetivo: Clasificar el perfil del hogar por género para extraer 
-        las barreras estructurales (importancia de variables).
+        Entrena el Modelo de Diagnóstico IVLE (M4):
+        Calcula el Índice de Vulnerabilidad Laboral y Estructural mediante PCA,
+        lo discretiza en 5 clases con GMM, y entrena un LightGBM para poder
+        extraer la explicabilidad con SHAP.
         """
-        print("Entrenando modelo de diagnóstico ENIGH...")
-        df = df_enigh.copy()
+        print("Calculando el IVLE (Índice de Vulnerabilidad Laboral y Estructural)...")
+        df = df_fused.copy()
         
-        # Crear 'con_negocio' si no existe
+        # 1. Feature Engineering para las Dimensiones del IVLE
+        # Dimensión Demográfica
+        df['tasa_dependencia'] = df['menores'] / df['tot_integ'].clip(lower=1)
+        
+        # Dimensión de Autonomía
+        df['dependencia_financiera'] = df['transfer'] / df['ing_cor'].replace(0, 1)
+        
+        # Dimensión Económica
+        df['ing_cor_pc'] = df['ing_cor'] / df['tot_integ'].clip(lower=1)
+        
+        # Llenar nulos si los hay
+        cols_ivle = ['ing_cor_pc', 'dependencia_financiera', 'educa_jefe', 'tasa_dependencia', 'riesgo_informalidad_entorno']
+        df[cols_ivle] = df[cols_ivle].fillna(df[cols_ivle].median())
+        
+        # 2. Escalamiento Min-Max (Orientación: Mayor valor = Mayor Vulnerabilidad)
+        scaler = MinMaxScaler()
+        X_ivle = pd.DataFrame(scaler.fit_transform(df[cols_ivle]), columns=cols_ivle, index=df.index)
+        
+        # Invertir ingresos y educación (más ingresos/educación = MENOS vulnerabilidad)
+        X_ivle['ing_cor_pc'] = 1 - X_ivle['ing_cor_pc']
+        X_ivle['educa_jefe'] = 1 - X_ivle['educa_jefe']
+        
+        # 3. PCA para extraer la variable latente (IVLE Continuo)
+        pca = PCA(n_components=1, random_state=self.random_state)
+        ivle_continuo = pca.fit_transform(X_ivle).flatten()
+        
+        # Asegurar que la dirección del PC1 tiene sentido (correlación positiva con dependencia)
+        if np.corrcoef(ivle_continuo, X_ivle['dependencia_financiera'])[0, 1] < 0:
+            ivle_continuo = -ivle_continuo
+            
+        # Escalar el IVLE Continuo a 0-100
+        ivle_continuo = MinMaxScaler(feature_range=(0, 100)).fit_transform(ivle_continuo.reshape(-1, 1)).flatten()
+        df['ivle_score'] = ivle_continuo
+        
+        # 4. Discretización con GMM (5 Clases)
+        print("Discretizando el IVLE con Gaussian Mixture Models...")
+        gmm = GaussianMixture(n_components=5, covariance_type='tied', random_state=self.random_state)
+        # Ajustamos el GMM sobre el score para agrupar
+        clases_gmm = gmm.fit_predict(ivle_continuo.reshape(-1, 1))
+        
+        # Ordenar las clases para que 0 sea Muy Baja y 4 sea Muy Alta Vulnerabilidad
+        centros = gmm.means_.flatten()
+        orden_clases = np.argsort(centros)
+        mapa_clases = {orden_clases[i]: i for i in range(5)}
+        df['ivle_clase'] = np.vectorize(mapa_clases.get)(clases_gmm)
+        
+        # 5. Entrenamiento del Modelo Predictivo (LightGBM Ordinal/Multiclase)
+        print("Entrenando clasificador LightGBM para el IVLE...")
+        # Variables predictoras (no las fórmulas exactas, sino crudas para que aprenda no-linealidades)
         if 'negocio' in df.columns and 'con_negocio' not in df.columns:
             df['con_negocio'] = (df['negocio'] > 0).astype(int)
             
-        # Variables continuas con logaritmo para normalizar impacto
-        cols_log = ['ing_cor', 'ingtrab', 'gasto_mon', 'transfer']
-        for col in cols_log:
-            if col in df.columns:
-                df[col] = np.log1p(df[col].fillna(0))
-        
-        # Selección de características (basado en el notebook)
-        feats = ['edad_jefe', 'educa_jefe', 'menores', 'tot_integ', 'ing_cor', 'ingtrab', 'transfer', 'con_negocio']
+        feats = ['edad_jefe', 'educa_jefe', 'menores', 'tot_integ', 'ing_cor', 'ingtrab', 'transfer', 'con_negocio', 'riesgo_informalidad_entorno']
         X = df[feats]
-        y = df['es_jefa_mujer']
+        y = df['ivle_clase']
         
-        # Preprocesador: numéricas (continuas), ordinales (educación), binarias (negocio)
-        prepro = self._get_preprocessor(['edad_jefe', 'menores', 'tot_integ', 'ing_cor', 'ingtrab', 'transfer'], 
+        prepro = self._get_preprocessor(['edad_jefe', 'menores', 'tot_integ', 'ing_cor', 'ingtrab', 'transfer', 'riesgo_informalidad_entorno'], 
                                         ['educa_jefe'], [], ['con_negocio'])
         
-        # Pipeline con Pesos Balanceados para manejar el desbalance de clases
         pipe_enigh = Pipeline([
             ('pre', prepro),
             ('clf', lgb.LGBMClassifier(
+                objective='multiclass',
+                num_class=5,
                 random_state=self.random_state, 
                 verbose=-1,
                 class_weight='balanced',
-                n_estimators=100
+                n_estimators=150
             ))
         ])
         
         pipe_enigh.fit(X, y)
-        joblib.dump(pipe_enigh, os.path.join(self.output_dir, 'modelo4_diagnostico.joblib'))
-        print("Modelo ENIGH guardado.")
+        
+        # Guardar el modelo y los objetos del IVLE por si se necesitan después
+        joblib.dump(pipe_enigh, os.path.join(self.output_dir, 'modelo4_ivle.joblib'))
+        joblib.dump(pca, os.path.join(self.output_dir, 'ivle_pca.joblib'))
+        joblib.dump(gmm, os.path.join(self.output_dir, 'ivle_gmm.joblib'))
+        
+        print("Modelo IVLE (M4) guardado exitosamente.")
 
     def _get_preprocessor(self, num, ord, nom, bin):
         """
