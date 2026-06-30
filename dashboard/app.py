@@ -82,38 +82,69 @@ if not _modelos_validos():
 processor = DataProcessor(dataset_path=str(DATASET_DIR))
 
 # --- Lógica Principal (Pantalla Única) ---
-st.title("Impacto de la Desigualdad de Género en México")
-st.subheader("Análisis de Brechas Laborales y Económicas en Hogares")
+st.title("Sistema Inteligente de Apoyo a Decisiones (DSS) con XAI")
+st.subheader("Evaluación Multidimensional de Vulnerabilidad Laboral y Estructural (IVLE)")
 
 st.markdown("""
-Este dashboard interactivo ofrece una visión profunda sobre los desafíos que enfrentan las mujeres 
-en el mercado laboral y la administración del hogar, basado en datos oficiales de **INEGI (ENOE y ENIGH)**.
+Este framework analítico implementa algoritmos de **Inteligencia Artificial Explicable (XAI)** para diagnosticar 
+la vulnerabilidad estructural de los hogares mexicanos, resolviendo la carencia de microdatos vinculados 
+mediante técnicas de **Fusión Estadística (Statistical Matching)** sobre encuestas oficiales (ENOE y ENIGH).
 """)
 
 # Hero Section - Hallazgos más impactantes
-st.info("Hallazgos Clave de este Análisis:")
+st.info("Aportaciones Científicas Clave:")
 h_col1, h_col2, h_col3 = st.columns(3)
 with h_col1:
-    st.error("Menor Participación")
-    st.write("La participación femenina sigue siendo ~25% menor a la de los hombres.")
+    st.error("Fusión de Microdatos")
+    st.write("Puente estadístico que integra fricción laboral (ENOE) y déficit estructural (ENIGH) en un solo espacio latente.")
 with h_col2:
-    st.warning("Brecha Salarial")
-    st.write("Las mujeres perciben, en mediana, un **20.8% menos** por hora trabajada (dato ENOE 2025).")
+    st.warning("Índice IVLE")
+    st.write("Modelado probabilístico GMM optimizado vía BIC ($k=5$) para discretizar el riesgo multidimensional.")
 with h_col3:
-    st.success("Sostén del Hogar")
-    st.write("Las jefas de hogar destinan proporcionalmente más ingreso a transferencias y becas.")
+    st.success("Transparencia XAI")
+    st.write("Deconstrucción del riesgo individual utilizando Teoría de Juegos (SHAP) para dictaminar políticas públicas.")
 
 st.divider()
 
-render_decision_support()
+# --- Pestañas Académicas (Estructura Técnica para el Paper) ---
+tab1, tab2, tab3 = st.tabs(["📊 Simulador DSS (XAI)", "🧬 Metodología del IVLE", "🔗 Fusión Estadística (Matching)"])
+
+with tab1:
+    render_decision_support()
+
+with tab2:
+    st.header("Construcción del Índice de Vulnerabilidad Laboral y Estructural (IVLE)")
+    st.markdown("""
+    Para superar las limitaciones de los índices de pobreza unidimensionales, este sistema propone el **IVLE**.
+    
+    ### 1. Modelado del Espacio Latente (PCA)
+    Las carencias de los hogares se proyectan en un espacio ortogonal utilizando Análisis de Componentes Principales (PCA). 
+    A diferencia de enfoques no lineales opacos, el **PCA Lineal garantiza la interpretabilidad** de las cargas factoriales ($Loadings$), permitiendo auditar el peso exacto de variables como la dependencia financiera o la tasa de dependencia demográfica en la formación del componente principal ($PC1$).
+    
+    ### 2. Discretización Probabilística (GMM)
+    El espacio latente continuo se clusteriza utilizando **Gaussian Mixture Models (GMM)**. 
+    Para evitar una segmentación arbitraria, el hiperparámetro $k$ (número de niveles de vulnerabilidad) se optimiza computacionalmente minimizando el **Criterio de Información Bayesiano (BIC)**, demostrando empíricamente la existencia de 5 subpoblaciones estructurales en la demografía mexicana.
+    
+    ### 3. Aprendizaje Explicable (LightGBM + SHAP)
+    Finalmente, un modelo ensamblado (LightGBM multiclase) aprende las fronteras de decisión de los clusters de GMM. En la inferencia (Simulador), la técnica de Teoría de Juegos **SHAP (SHapley Additive exPlanations)** se utiliza para deconstruir la predicción y ofrecer transparencia total sobre los factores de riesgo de cada hogar.
+    """)
+
+with tab3:
+    st.header("Fusión Estadística: Superando el Aislamiento de Microdatos")
+    st.markdown("""
+    Uno de los principales aportes de esta investigación es la solución a la desconexión de las encuestas oficiales en México (INEGI).
+    
+    ### El Problema de Datos
+    - **ENIGH:** Posee alta dimensionalidad en ingresos y gastos del hogar, pero carece de variables profundas sobre precariedad laboral.
+    - **ENOE:** Captura la fricción del mercado laboral y la informalidad, pero no recolecta estructura de gastos del hogar.
+    
+    ### Solución Propuesta (Statistical Matching)
+    El sistema implementa una arquitectura de fusión de datos donde:
+    1. Se entrena un modelo subyacente en la **ENOE** para predecir la *Probabilidad Macro de Informalidad Laboral* basada en atributos demográficos (edad, educación, ubicación, género).
+    2. Esta probabilidad se inyecta como una **variable latente exógena** en los perfiles de la **ENIGH**.
+    
+    Este puente estadístico permite que el modelo final (IVLE) entienda la vulnerabilidad de un hogar **no solo por su déficit de ingresos internos, sino también por el riesgo de informalidad laboral inherente a su entorno demográfico**.
+    """)
 
 # --- Pie de Página ---
-st.sidebar.divider()
-st.sidebar.caption("DAT4CCIÓN: Datatón regional para la igualdad 2026")
-st.sidebar.markdown("""
-**Colaboradores:**
-- Fernández Córdova Jonathan
-- Zaleta Hernández Ximena
-- Martínez Domínguez Diego 
-- Chama Aguilar Jessica Pola
-""")
+

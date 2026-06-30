@@ -122,5 +122,3 @@ class DecisionSupportSystem:
             'base_value': explanation['base_value'],
             'df_impactos': df_agrupado.sort_values(by='impacto', ascending=False)
         }
-            'df_impactos': df_agrupado.sort_values(by='impacto', ascending=False)
-        }

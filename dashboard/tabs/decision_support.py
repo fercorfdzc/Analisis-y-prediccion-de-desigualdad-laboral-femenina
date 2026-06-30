@@ -17,7 +17,7 @@ def render_decision_support():
     # 1. Cargar el modelo M4
     @st.cache_resource
     def load_dss_system():
-        model_path = 'dashboard/models/modelo4_diagnostico.joblib'
+        model_path = 'dashboard/models/modelo4_ivle.joblib'
         if not os.path.exists(model_path):
             return None
         model = joblib.load(model_path)
@@ -43,22 +43,38 @@ def render_decision_support():
         return
         
     # 2. Interfaz para ingresar un perfil simulado
-    st.subheader("Simulador de Perfil de Hogar")
-    st.write("Ajusta las características de un hogar para ver el análisis de vulnerabilidad.")
+    st.markdown("### 🎛️ Simulador de Perfil de Hogar")
+    st.write("Ajusta las características de un hogar para ver el análisis de vulnerabilidad en tiempo real.")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        edad = st.slider("Edad de la Jefa de Familia", 18, 80, 35)
-        educa = st.selectbox("Nivel Educativo", options=[1,2,3,4,5,6,7,8,9,10,11], index=4, help="1=Sin instrucción, 11=Posgrado")
-        menores = st.number_input("Cantidad de Menores de Edad", 0, 10, 2)
-        tot_integ = st.number_input("Tamaño total del hogar (Integrantes)", 1, 15, 4)
-        
-    with col2:
-        ing_cor = st.number_input("Ingreso Corriente Total Mensual ($)", 0, 100000, 8000)
-        ingtrab = st.number_input("De lo anterior, ¿cuánto es por Trabajo? ($)", 0, 100000, 4000)
-        transfer = st.number_input("De lo anterior, ¿cuánto es por Apoyos/Remesas? ($)", 0, 50000, 3000)
-        con_negocio = st.radio("¿Tiene negocio propio?", options=[0, 1], format_func=lambda x: "Sí" if x==1 else "No")
-        riesgo_informal = st.slider("Probabilidad Macro de Informalidad Laboral en su entorno (ENOE)", 0.0, 1.0, 0.55, help="Riesgo de informalidad de las mujeres en su misma zona y nivel educativo.")
+    with st.form("perfil_hogar_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            edad = st.slider("Edad de la Jefa de Familia", 18, 80, 35)
+            niveles_edu = {
+                1: "1 - Sin instrucción",
+                2: "2 - Preescolar",
+                3: "3 - Primaria incompleta",
+                4: "4 - Primaria completa",
+                5: "5 - Secundaria incompleta",
+                6: "6 - Secundaria completa",
+                7: "7 - Preparatoria incompleta",
+                8: "8 - Preparatoria completa",
+                9: "9 - Profesional incompleto",
+                10: "10 - Profesional completo",
+                11: "11 - Posgrado"
+            }
+            educa = st.selectbox("Nivel Educativo", options=list(niveles_edu.keys()), index=4, format_func=lambda x: niveles_edu[x])
+            menores = st.number_input("Cantidad de Menores de Edad", 0, 10, 2)
+            tot_integ = st.number_input("Tamaño total del hogar (Integrantes)", 1, 15, 4)
+            
+        with col2:
+            ing_cor = st.number_input("Ingreso Corriente Total Mensual ($)", 0, 100000, 8000)
+            ingtrab = st.number_input("De lo anterior, ¿cuánto es por Trabajo? ($)", 0, 100000, 4000)
+            transfer = st.number_input("De lo anterior, ¿cuánto es por Apoyos/Remesas? ($)", 0, 50000, 3000)
+            con_negocio = st.radio("¿Tiene negocio propio?", options=[0, 1], format_func=lambda x: "Sí" if x==1 else "No", horizontal=True)
+            riesgo_informal = st.slider("Probabilidad Macro de Informalidad Laboral en su entorno (ENOE)", 0.0, 1.0, 0.55, help="Riesgo de informalidad de las mujeres en su misma zona y nivel educativo.")
+            
+        submitted = st.form_submit_button("🚀 Generar Diagnóstico y Recomendaciones", type="primary", use_container_width=True)
         
     # Construir el DataFrame del perfil
     perfil = pd.DataFrame({
@@ -66,32 +82,35 @@ def render_decision_support():
         'educa_jefe': [educa],
         'menores': [menores],
         'tot_integ': [tot_integ],
-        'ing_cor': [ing_cor], # El DSS hará el logaritmo
+        'ing_cor': [ing_cor], 
         'ingtrab': [ingtrab],
         'transfer': [transfer],
         'con_negocio': [con_negocio],
         'riesgo_informalidad_entorno': [riesgo_informal]
     })
     
-    st.divider()
-    
     # 3. Obtener Recomendaciones y Explicaciones
-    if st.button("Generar Diagnóstico y Recomendaciones", type="primary"):
+    if submitted:
         with st.spinner("Analizando variables con SHAP..."):
             try:
                 res = dss.get_recommendation(perfil)
                 
                 # Mostrar Clase IVLE y Probabilidad
-                st.subheader("Diagnóstico de Vulnerabilidad Laboral y Estructural (IVLE)")
+                st.markdown("<br>", unsafe_allow_html=True)
                 
                 clase = res['ivle_class']
                 prob_alta = res['prob_alta_vulnerabilidad'] * 100
-                color = "red" if clase >= 3 else "orange" if clase == 2 else "green"
+                color = "#ef4444" if clase >= 3 else "#f59e0b" if clase == 2 else "#22c55e"
                 
                 niveles = {0: "Muy Baja", 1: "Baja", 2: "Media", 3: "Alta", 4: "Muy Alta"}
                 
-                st.markdown(f"### Nivel de Vulnerabilidad: <span style='color:{color}'>{niveles[clase]} (Clase {clase})</span>", unsafe_allow_html=True)
-                st.markdown(f"**Probabilidad estadística de estar en riesgo alto/muy alto:** {prob_alta:.1f}%")
+                st.markdown(f"""
+                <div class='metric-card' style='text-align: center; border-left: 5px solid {color};'>
+                    <h2 style='color:{color}; margin-top:0;'>Nivel de Vulnerabilidad: {niveles[clase]} (Clase {clase})</h2>
+                    <p style='font-size: 1.1rem; color: #cbd5e1;'>Probabilidad estadística de estar en riesgo alto/muy alto: <strong style='color: white;'>{prob_alta:.1f}%</strong></p>
+                </div>
+                <br>
+                """, unsafe_allow_html=True)
                 
                 # Mostrar Recomendaciones (Sistema Experto)
                 st.markdown("### 📋 Recomendaciones Accionables")

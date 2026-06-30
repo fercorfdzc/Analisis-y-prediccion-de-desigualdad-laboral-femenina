@@ -133,16 +133,31 @@ class ModelTrainer:
         ivle_continuo = MinMaxScaler(feature_range=(0, 100)).fit_transform(ivle_continuo.reshape(-1, 1)).flatten()
         df['ivle_score'] = ivle_continuo
         
-        # 4. Discretización con GMM (5 Clases)
-        print("Discretizando el IVLE con Gaussian Mixture Models...")
-        gmm = GaussianMixture(n_components=5, covariance_type='tied', random_state=self.random_state)
-        # Ajustamos el GMM sobre el score para agrupar
-        clases_gmm = gmm.fit_predict(ivle_continuo.reshape(-1, 1))
+        # 4. Discretización con GMM (Optimización dinámica de k vía BIC)
+        print("Optimizando hiperparámetro k de GMM vía BIC...")
+        data_gmm = ivle_continuo.reshape(-1, 1)
+        best_bic = np.inf
+        best_k = 2
+        best_gmm = None
         
-        # Ordenar las clases para que 0 sea Muy Baja y 4 sea Muy Alta Vulnerabilidad
+        # Búsqueda en grilla (Grid Search) de 2 a 6 para encontrar el mínimo local
+        for k in range(2, 7):
+            gmm_temp = GaussianMixture(n_components=k, covariance_type='tied', random_state=self.random_state)
+            gmm_temp.fit(data_gmm)
+            bic = gmm_temp.bic(data_gmm)
+            if bic < best_bic:
+                best_bic = bic
+                best_k = k
+                best_gmm = gmm_temp
+                
+        print(f"El Criterio de Información Bayesiano (BIC) seleccionó k={best_k} como óptimo.")
+        gmm = best_gmm
+        clases_gmm = gmm.predict(data_gmm)
+        
+        # Ordenar las clases para que 0 sea Muy Baja y (k-1) sea Muy Alta Vulnerabilidad
         centros = gmm.means_.flatten()
         orden_clases = np.argsort(centros)
-        mapa_clases = {orden_clases[i]: i for i in range(5)}
+        mapa_clases = {orden_clases[i]: i for i in range(best_k)}
         df['ivle_clase'] = np.vectorize(mapa_clases.get)(clases_gmm)
         
         # 5. Entrenamiento del Modelo Predictivo (LightGBM Ordinal/Multiclase)
@@ -162,7 +177,7 @@ class ModelTrainer:
             ('pre', prepro),
             ('clf', lgb.LGBMClassifier(
                 objective='multiclass',
-                num_class=5,
+                num_class=best_k,
                 random_state=self.random_state, 
                 verbose=-1,
                 class_weight='balanced',
